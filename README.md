@@ -1,4 +1,5 @@
 <img src="https://img.shields.io/npm/v/wafis-cli" />
+<img src="https://img.shields.io/github/followers/sovr610?style=social" />
 
 # wafis-cli
 Wafis is a front-end web framework that works with react TSX style components with webassembly integrated into it. This is the command line interface tool to create projects, add components and more features that are listed below. 
