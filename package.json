@@ -1,11 +1,12 @@
 {
   "name": "wafis-cli",
-  "version": "0.0.4-alpha",
-  "description": "wafis frot-end webassembly framework",
+  "version": "0.0.7-alpha",
+  "description": "wafis front-end webassembly framework",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "npx eslint . --ext .ts --fix"
+    "lint": "npx eslint . --ext .ts --fix",
+    "preinstall": "node pre-install.js"
   },
   "repository": {
     "type": "git",
@@ -40,14 +41,18 @@
       "git add"
     ]
   },
+  "funding":[
+    {
+      "type":"paypal",
+      "url":"https://paypal.me/padrobotics?country.x=US&locale.x=en_US"
+    },
+    {
+      "type":"patreon",
+      "url":"https://www.patreon.com/MrSovr"
+    }
+  ],
   "bin": {
-    "wafis-create-project": "node-bin/create-project",
-    "wafis-add-component": "node-bin/create-component",
-    "wafis-add-service": "node-bin/add-service",
-    "wafis-add-wasm": "node-bin/add-wasm",
-    "wafis-install": "node-bin/init",
-    "wafis-build": "node-bin/build-project",
-    "wafis": "node-bin/assemble"
+    "wafis": "node-bin/wafis"
   },
   "publishConfig": {
     "access": "public"
@@ -62,7 +67,9 @@
     "appdata-path": "^1.0.0",
     "arg": "^5.0.2",
     "esm": "^3.2.25",
+    "inquirer": "^9.1.0",
     "npm": "^8.18.0",
+    "os": "^0.1.2",
     "shelljs": "^0.8.5"
   },
   "devDependencies": {
