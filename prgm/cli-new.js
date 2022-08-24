@@ -391,6 +391,7 @@ export function wafis(args) {
     var hasService = false;
     var hasWasm = false;
     var hasBuild = false;
+    var hasInstall = false;
 
 
     for (let i = 0; i <= argcc.length; i++) {
@@ -420,6 +421,10 @@ export function wafis(args) {
             if (itm == 'build') {
                 hasBuild = true;
             }
+
+            if(itm == 'install') {
+                hasInstall = true;
+            }
         }
     }
 
@@ -429,7 +434,8 @@ export function wafis(args) {
         component: hasComponent,
         service: hasService,
         wasm: hasWasm,
-        build: hasBuild
+        build: hasBuild,
+        install: hasInstall
     }
 
     function parseArgs(rawArgs) {
@@ -441,6 +447,8 @@ export function wafis(args) {
             "--help": Boolean,
             "--version": Boolean,
             "--verbose": Boolean,
+            "--type": String,
+            "-t": "--type",
             "-h": "--help",
             "-db": "--debug",
             "-d": "--dir",
@@ -458,7 +466,9 @@ export function wafis(args) {
             dir: args['--dir'] || './',
             help: args['--help'] || false,
             version: args["--version"] || false,
-            verbose: args["--verbose"] || false
+            verbose: args["--verbose"] || false,
+            type: args["--type"] || false,
+
         }
     }
 
@@ -467,131 +477,236 @@ export function wafis(args) {
 
 
     if (argObj.new == true) {
-        if (argObj.project) {
+        if (argObj.project && (!argc.help)) {
             createProject(argc.name, argc.dir);
 
         }
 
-        if (argObj.component) {
+        if (argObj.component && (!argc.help)) {
             createComponent(argc.name);
             console.log('\x1b[32m', argc.name + ' component created!')
             console.log('\x1b[37m')
         }
 
-        if (argObj.service) {
+        if (argObj.service && (!argc.help)) {
             console.log('services are not implemented yet');
         }
 
-        if (argObj.wasm) {
+        if (argObj.wasm && (!argc.help)) {
             console.log('adding wasm modules are not implemented yet');
         }
+
+        if (argObj.new && argc.help && !argObj.build && !argObj.component && !argObj.project && !argObj.service && !argObj.wasm) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis new <commmand> [options...]', '\x1b[37m');
+            console.log('  <command> -> project, component, service, wasm');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -db/--debug: build project in debug mode');
+            console.log('    -vb/--verbose: print out additional details during build');
+            console.log('    -r/--release: build project in release mode');
+            console.log('    -t/--type: add wasm type to either c++ or rust');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if ((argObj.new && argObj.project && argc.help) || (argObj.project && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis new project [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -n/--name: name of the project');
+            console.log('    -d/--dir: directory location for project folder, default \'./\'');
+            console.log('');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if ((argObj.new && argObj.component && argc.help) || (argObj.component && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis new component [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -n/--name: The name of the component');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if ((argObj.new && argObj.service && argc.help) || (argObj.service && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis new service [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -n/--name: The name of the component');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if ((argObj.new && argObj.wasm && argc.help) || (argObj.wasm && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis new wasm [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -n/--name: The name of the component');
+            console.log('    -t/--type: have the wasm module based in \'cpp\' or \'rust\'');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if ((argObj.new && argObj.install && argc.help) || (argObj.install && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis install [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -t/--type: have the wasm module based in \'cpp\', \'rust\' or \'both\'');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if (argc.help && !argObj.build && !argObj.component && !argObj.project && !argObj.service && !argObj.wasm) {
+            console.log('\x1b[35m', 'new -> ', '\x1b[37m', 'used for creating a new project, component, service and/or wasm module');
+            console.log('\x1b[35m', 'project -> ', '\x1b[37m', 'Creates a starting default wafis project. \'new\' is needed also to run this command');
+            console.log('\x1b[35m', 'component -> ', '\x1b[37m', 'used for creating a new component in your wafis project. \'new\' is needed also to run this command');
+            console.log('\x1b[35m', 'service -> ', '\x1b[37m', 'used for creating a new service for communicating to back-end servers. \'new\' is needed also to run this command');
+            console.log('\x1b[35m', 'wasm -> ', '\x1b[37m', 'used for creating a new wasm module either in C++ or rust to add to your wafis project. \'new\' is needed also to run this command');
+            console.log('\x1b[35m', 'build -> ', '\x1b[37m', 'used to build your project. This has various arguments, to set to debug or release');
+            console.log('');
+            console.log(' *For more info on each command run: ', '\x1b[31m', 'wafis <command> [ -h | --help ]');
+
+
+            console.log('\x1b[37m')
+        }
     } else {
-        if (argc.version) {
-
-            var osValue = process.platform;
-            var osName = null;
-            if (osValue == 'darwin') {
-                osName = "Mac OS";
-            } else if (osValue == 'win32') {
-                osName = "Window OS";
-            } else if (osValue == 'android') {
-                osName = "Android OS";
-            } else if (osValue == 'linux') {
-                osName = "Linux OS";
-            } else {
-                osName = "Unknown OS";
+        if (argObj.install) {
+            if(argc.type == 'cpp'){
+                install(false, true);
             }
 
-            console.log('Wafis cli version: ' + pjson.version);
-            console.log('Node: ' + process.version);
-            console.log('OS: ' + osValue + ' (' + osName + ')');
-            console.log('OS version: ' + os.release());
-            console.log('OS arch: ' + os.arch());
+            if(argc.type == 'rust'){
+                install(true, false);
+            }
+
+            if(argc.type == 'both'){
+                install(true, true);
+            }
         } else {
-            if (argObj.build && !argc.help) {
-                if (argc.release == true) {
-                    argc.debug = false;
+            if (argc.version) {
+
+                var osValue = process.platform;
+                var osName = null;
+                if (osValue == 'darwin') {
+                    osName = "Mac OS";
+                } else if (osValue == 'win32') {
+                    osName = "Window OS";
+                } else if (osValue == 'android') {
+                    osName = "Android OS";
+                } else if (osValue == 'linux') {
+                    osName = "Linux OS";
+                } else {
+                    osName = "Unknown OS";
                 }
-                buildProject(argc.debug, argc.verbose);
-            }
 
-            if (argObj.build && argc.help) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis build [options...]', '\x1b[37m');
-                console.log('');
-                console.log('  OPTIONS: ')
-                console.log('    -db/--debug: build project in debug mode');
-                console.log('    -vb/--verbose: print out additional details during build');
-                console.log('    -r/--release: build project in release mode');
-                console.log('----------------------------------------------------------------')
-            }
+                console.log('Wafis cli version: ' + pjson.version);
+                console.log('Node: ' + process.version);
+                console.log('OS: ' + osValue + ' (' + osName + ')');
+                console.log('OS version: ' + os.release());
+                console.log('OS arch: ' + os.arch());
+            } else {
+                if (argObj.build && !argc.help) {
+                    if (argc.release == true) {
+                        argc.debug = false;
+                    }
+                    buildProject(argc.debug, argc.verbose);
+                }
 
-            if (argObj.new && argc.help) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis new <commmand> [options...]', '\x1b[37m');
-                console.log('  <command> -> project, component, service, wasm');
-                console.log('');
-                console.log('  OPTIONS: ');
-                console.log('    -db/--debug: build project in debug mode');
-                console.log('    -vb/--verbose: print out additional details during build');
-                console.log('    -r/--release: build project in release mode');
-                console.log('----------------------------------------------------------------')
-            }
+                if (argObj.build && argc.help) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis build [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('  OPTIONS: ')
+                    console.log('    -db/--debug: build project in debug mode');
+                    console.log('    -vb/--verbose: print out additional details during build');
+                    console.log('    -r/--release: build project in release mode');
+                    console.log('----------------------------------------------------------------')
+                }
 
-            if ((argObj.new && argObj.project && argc.help) || (argObj.project && argc.help)) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis new project [options...]', '\x1b[37m');
-                console.log('');
-                console.log('');
-                console.log('  OPTIONS: ');
-                console.log('    -n/--name: name of the project');
-                console.log('    -d/--dir: directory location for project folder, default \'./\'');
-                console.log('');
-                console.log('----------------------------------------------------------------')
-            }
+                if (argObj.new && argc.help) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis new <commmand> [options...]', '\x1b[37m');
+                    console.log('  <command> -> project, component, service, wasm');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -db/--debug: build project in debug mode');
+                    console.log('    -vb/--verbose: print out additional details during build');
+                    console.log('    -r/--release: build project in release mode');
+                    console.log('----------------------------------------------------------------')
+                }
 
-            if ((argObj.new && argObj.component && argc.help) || (argObj.component && argc.help)) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis new component [options...]', '\x1b[37m');
-                console.log('');
-                console.log('');
-                console.log('  OPTIONS: ');
-                console.log('    -n/--name: The name of the component');
-                console.log('----------------------------------------------------------------')
-            }
+                if ((argObj.new && argObj.project && argc.help) || (argObj.project && argc.help)) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis new project [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -n/--name: name of the project');
+                    console.log('    -d/--dir: directory location for project folder, default \'./\'');
+                    console.log('');
+                    console.log('----------------------------------------------------------------')
+                }
 
-            if ((argObj.new && argObj.service && argc.help) || (argObj.service && argc.help)) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis new service [options...]', '\x1b[37m');
-                console.log('');
-                console.log('');
-                console.log('  OPTIONS: ');
-                console.log('    -n/--name: The name of the component');
-                console.log('----------------------------------------------------------------')
-            }
+                if ((argObj.new && argObj.component && argc.help) || (argObj.component && argc.help)) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis new component [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -n/--name: The name of the component');
+                    console.log('----------------------------------------------------------------')
+                }
 
-            if ((argObj.new && argObj.wasm && argc.help) || (argObj.wasm && argc.help)) {
-                console.log('----------------------------------------------------------------')
-                console.log('\x1b[31m', 'wafis new wasm [options...]', '\x1b[37m');
-                console.log('');
-                console.log('');
-                console.log('  OPTIONS: ');
-                console.log('    -n/--name: The name of the component');
-                console.log('----------------------------------------------------------------')
-            }
+                if ((argObj.new && argObj.service && argc.help) || (argObj.service && argc.help)) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis new service [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -n/--name: The name of the component');
+                    console.log('----------------------------------------------------------------')
+                }
 
-            if (argc.help && !argObj.build && !argObj.component && !argObj.project && !argObj.service && !argObj.wasm) {
-                console.log('\x1b[35m', 'new -> ', '\x1b[37m', 'used for creating a new project, component, service and/or wasm module');
-                console.log('\x1b[35m', 'project -> ', '\x1b[37m', 'Creates a starting default wafis project. \'new\' is needed also to run this command');
-                console.log('\x1b[35m', 'component -> ', '\x1b[37m', 'used for creating a new component in your wafis project. \'new\' is needed also to run this command');
-                console.log('\x1b[35m', 'service -> ', '\x1b[37m', 'used for creating a new service for communicating to back-end servers. \'new\' is needed also to run this command');
-                console.log('\x1b[35m', 'wasm -> ', '\x1b[37m', 'used for creating a new wasm module either in C++ or rust to add to your wafis project. \'new\' is needed also to run this command');
-                console.log('\x1b[35m', 'build -> ', '\x1b[37m', 'used to build your project. This has various arguments, to set to debug or release');
-                console.log('');
-                console.log(' *For more info on each command run: ', '\x1b[31m', 'wafis <command> [ -h | --help ]');
+                if ((argObj.new && argObj.wasm && argc.help) || (argObj.wasm && argc.help)) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis new wasm [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -n/--name: The name of the component');
+                    console.log('    -t/--type: have the wasm module based in \'cpp\' or \'rust\'');
+                    console.log('----------------------------------------------------------------')
+                }
+
+                if ((argObj.new && argObj.install && argc.help) || (argObj.install && argc.help)) {
+                    console.log('----------------------------------------------------------------')
+                    console.log('\x1b[31m', 'wafis install [options...]', '\x1b[37m');
+                    console.log('');
+                    console.log('');
+                    console.log('  OPTIONS: ');
+                    console.log('    -t/--type: have the wasm module based in \'cpp\', \'rust\' or \'both\'');
+                    console.log('----------------------------------------------------------------')
+                }
+
+                if (argc.help && !argObj.build && !argObj.component && !argObj.project && !argObj.service && !argObj.wasm) {
+                    console.log('\x1b[35m', 'new -> ', '\x1b[37m', 'used for creating a new project, component, service and/or wasm module');
+                    console.log('\x1b[35m', 'project -> ', '\x1b[37m', 'Creates a starting default wafis project. \'new\' is needed also to run this command');
+                    console.log('\x1b[35m', 'component -> ', '\x1b[37m', 'used for creating a new component in your wafis project. \'new\' is needed also to run this command');
+                    console.log('\x1b[35m', 'service -> ', '\x1b[37m', 'used for creating a new service for communicating to back-end servers. \'new\' is needed also to run this command');
+                    console.log('\x1b[35m', 'wasm -> ', '\x1b[37m', 'used for creating a new wasm module either in C++ or rust to add to your wafis project. \'new\' is needed also to run this command');
+                    console.log('\x1b[35m', 'build -> ', '\x1b[37m', 'used to build your project. This has various arguments, to set to debug or release');
+                    console.log('');
+                    console.log(' *For more info on each command run: ', '\x1b[31m', 'wafis <command> [ -h | --help ]');
 
 
-                console.log('\x1b[37m')
+                    console.log('\x1b[37m')
+                }
             }
         }
     }
@@ -608,6 +723,89 @@ export function assemble(args) {
     console.log('wafis-build -> build the assemble project');
     console.log('    -d/--debug -> build project in debug mode');
     console.log('    -r/--release -> build project in release mode');
+}
+
+function install(rust, cpp) {
+    function installEMCC() {
+        var osValue = process.platform;
+        if (osValue == 'win32') {
+            console.log('WARNING: this is not as stable, but should still work.');
+            let tmp = appData();
+            let currentDir = process.cwd();
+
+            shell.cd(tmp);
+            shell.exec('git clone https://github.com/emscripten-core/emsdk.git');
+            shell.cd('emsdk');
+            shell.exec('start emsdk install latest');
+            shell.exec('start emsdk activate latest');
+            shell.exec('emsdk_env.bat');
+            shell.cd(currentDir);
+
+        }
+
+        if (osValue == 'linux') {
+            let tmp = shell.tempdir();
+            let currentDir = process.cwd();
+
+            if (!shell.which('python3')) {
+                shell.exec('sudo apt-get install python3');
+            }
+
+            if (!shell.which('git')) {
+                shell.exec('sudo apt-get install git');
+            }
+
+            if (!shell.which('cmake')) {
+                shell.exec('sudo apt-get install cmake');
+            }
+
+            shell.cd(tmp);
+            shell.exec('git clone https://github.com/emscripten-core/emsdk.git');
+            shell.cd('emsdk');
+            shell.exec('./emsdk install latest');
+            shell.exec('./emsdk activate latest');
+            shell.exec('source ./emsdk_env.sh');
+
+            shell.cd(currentDir)
+        }
+    }
+
+    function installRust() {
+        //https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+        var osValue = process.platform;
+        if (osValue == 'win32') {
+            console.log('Right now you will need to install rust and web-pack manually for windows, we are working on this!');
+            console.log('rust: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe');
+            console.log('web-pack: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.3/wasm-pack-init.exe')
+            return;
+
+            let url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe";
+            //shell.exec('Invoke-WebRequest -URI "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile ".\\rust-install.exe" ')
+            exec('Start-BitsTransfer -Source "' + url + '" -Destination rust-install.exe', {
+                'shell': 'powershell.exe'
+            }, (error, stdout, stderr) => {
+                console.log(stdout);
+            })
+        }
+
+        if (osValue == "linux") {
+            if (!shell.which('curl')) {
+                shell.exec('sudo apt-get curl');
+            }
+
+            shell.exec('curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh');
+            shell.exec('curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh');
+        }
+    }
+
+    if (cpp == true) {
+        installEMCC();
+    }
+
+    if (rust == true) {
+        installRust();
+    }
+
 }
 
 function createProject(name, dirarg) {
@@ -683,7 +881,7 @@ function createProject(name, dirarg) {
 
 
         const file = fs.createWriteStream("./assets/2F5X8JT.jpg");
-        const request = http.get("https://sovr610.github.io/resources/img/2F5X8JT.jpg", function(response) {
+        const request = http.get("https://sovr610.github.io/resources/img/2F5X8JT.jpg", function (response) {
             response.pipe(file);
 
             // after download completed close filestream
