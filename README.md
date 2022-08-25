@@ -1,3 +1,5 @@
+![wafis logo](https://sovr610.github.io/resources/img/wafis-logo-small.jpg)
+
 # wafis-cli
 Wafis is a front-end web framework that works with react TSX style components with webassembly integrated into it. This is the command line interface tool to create projects, add components and more features that are listed below. 
 
@@ -26,6 +28,7 @@ This is in a pre-alpha stage of development! as of 8/20/22, this framework has a
  - `wafis new service` -> add a service to call to a back-end server (usually for databases)
  - `wafis build` -> compiles wasm modules, compiles your comonents, and overall puts your project into a finalized website.
  - `wafis --help` -> general purpose command, at the moment it displays all the commands you can run.
+ - `wafis install` -> used to install C++ & rust dependencies for compiling the wasm modules (rust does not work yet for windows).
  
  # components
  below is example code for you building your own component to be added to the website.

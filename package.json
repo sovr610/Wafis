@@ -1,16 +1,23 @@
 {
   "name": "wafis-cli",
-  "version": "0.0.8-alpha",
+  "version": "0.1.4-alpha",
   "description": "wafis front-end webassembly framework",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "npx eslint . --ext .ts --fix",
-    "preinstall": "node pre-install.js"
+    "lint": "npx eslint . --ext .js --fix",
+    "preinstall": "node pre-install.js",
+    "postinstall": "node ./build-scripts/postinstall.js && echo \"done!\""
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/sovr610/Wafis.git"
+  },
+  "files": [
+    "./build-scripts/*.js"
+  ],
+  "directories": {
+    "build-scripts:": "./build-scripts"
   },
   "keywords": [
     "cli",

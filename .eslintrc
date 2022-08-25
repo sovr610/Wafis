@@ -49,6 +49,8 @@
       "sonarjs/no-small-switch": "warn",
       "no-unused-vars": "warn",
       "no-case-declarations": "warn",
+      "sonarjs/cognitive-complexity": "warn",
+      "no-irregular-whitespace": "warn",
       "node/no-unsupported-features/es-syntax": [
         "error",
         { ignores: ["modules"] },

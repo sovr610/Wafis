@@ -14,7 +14,7 @@ const {
 const babelTemplate = {
     "plugins": [
         ["@babel/plugin-transform-react-jsx", {
-            "pragma": "MiniFramework.createElement", // default pragma is React.createElement
+            "pragma": "wafisFramework.createElement", // default pragma is React.createElement
             "throwIfNamespace": false // defaults to true
         }]
     ]
@@ -112,7 +112,7 @@ interface FrameworkEl extends JSX.Element {
     tag: any;
   }
   
-  const MiniFramework = {
+  const wafisFramework = {
     createElement: (
       tag: JSX.Element,
       props: any,
@@ -160,7 +160,7 @@ interface FrameworkEl extends JSX.Element {
   const myMarkup = () => {
     return (
         <div data-x="data attribute test">
-
+        
         </div>
     
     );
@@ -207,52 +207,48 @@ const indexHTML = `
         <link rel="stylesheet" href="./style.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     </head>
-    <body id="page-top" style="background-image: url('https://sovr610.github.io/resources/img/2F5X8JT.jpg')">
+    <body id="page-top">
     <header class="masthead bg-primary text-white text-center">
     <div class="container d-flex align-items-center flex-column">
-        <!-- Masthead Avatar Image-->
-        <!--<img class="masthead-avatar mb-5" src="assets/img/avataaars.svg" alt="..." />-->
-
         <img src="./assets/2F5X8JT.jpg" style="width: 400px; height:300px;">
-        <!-- Masthead Heading-->
+
         <h1 class="masthead-heading text-uppercase mb-0">Wafis Web Framework</h1>
-        <!-- Icon Divider-->
+
         <div class="divider-custom divider-light">
             <div class="divider-custom-line"></div>
             <div class="divider-custom-icon"><i class="fas fa-star"></i></div>
             <div class="divider-custom-line"></div>
         </div>
-        <!-- Masthead Subheading-->
+
         <p class="masthead-subheading font-weight-light mb-0">JSX Framework  with webassembly on top!</p>
     </div>
     </header>
     <section class="page-section portfolio" id="portfolio">
             <div class="container">
-                <!-- Portfolio Section Heading-->
                 <h2 class="page-section-heading text-center text-uppercase text-secondary mb-0">Info & Links</h2>
-                <!-- Icon Divider-->
+
                 <div class="divider-custom">
                     <div class="divider-custom-line"></div>
                     <div class="divider-custom-icon"><i class="fas fa-star"></i></div>
                     <div class="divider-custom-line"></div>
                 </div>
-                <!-- Portfolio Grid Items-->
+
                 <div class="row justify-content-center">
                     <!-- Portfolio Item 1-->
                     <div class="col-md-6 col-lg-4 mb-5">
                         <a href="https://www.npmjs.com/package/wafis-cli">
                             <div class="portfolio-item mx-auto" data-bs-toggle="modal" data-bs-target="#portfolioModal1">
                                 <h4 class="text-center">npm page</h4>
-                                <img class="img-fluid" src="https://sovr610.github.io/resources/img/npm-logo-01B8642EDD-seeklogo.com.png" alt="" />-->
+                                <img class="img-fluid" src="https://sovr610.github.io/resources/img/npm-logo-01B8642EDD-seeklogo.com.png" alt="" />
                             </div>
                         </a>
                     </div>
-                    <!-- Portfolio Item 2-->
+
                     <div class="col-md-6 col-lg-4 mb-5">
                         <a href="https://github.com/sovr610/Wafis">
                             <div class="portfolio-item mx-auto">
                                 <h4 class="text-center">GitHub Repository</h4>
-                                <img class="img-fluid" src="https://sovr610.github.io/resources/img/GitHub-logo.png" alt="" />-->
+                                <img class="img-fluid" src="https://sovr610.github.io/resources/img/GitHub-logo.png" alt="" />
                             </div>
                         </a>
                     </div>
@@ -335,15 +331,17 @@ const packageJsonTemplate = {
         "cpp:build": "emcc --bind -O3 src/cpp/main.cpp"
     },
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=16.x",
+        "npm": ">=7.x"
     },
     "napa": {
         "libvpx": "git+https://github.com/webmproject/libvpx"
     },
     "keywords": [
-        "assemble",
+        "wafis",
         "webassembly"
     ],
+    "browserslist": ["> 0.2%", "not dead"],
     "author": "",
     "license": ""
 }
@@ -375,13 +373,17 @@ function parseHtmlIndexAddAbove(key, addon) {
         if (line.includes(key)) {
             newHtml = newHtml + addon + line;
         } else {
-            if (line != null) {
-                newHtml = newHtml + line;
+            if (line != null && line != undefined) {
+                newHtml = newHtml + ' \n ' + line;
             }
         }
     });
 }
 
+/**
+ * The core cli 
+ * @param {Array} args - arguments for wafis cli command (new, component, etc.)
+ */
 export function wafis(args) {
 
     var argcc = args.slice(2);
@@ -478,7 +480,7 @@ export function wafis(args) {
 
     if (argObj.new == true) {
         if (argObj.project && (!argc.help)) {
-            createProject(argc.name, argc.dir);
+            createProject(argc.name, argc.dir, argc.verbose);
 
         }
 
@@ -712,19 +714,11 @@ export function wafis(args) {
     }
 }
 
-export function assemble(args) {
-    console.log('wafis-create-project -> create an assemble project');
-    console.log('    -n/--name -> the name of the project');
-    console.log('    -d/--dir -> where to create the project, directory wise. if not set it will set in current directory');
-    console.log('');
-    console.log('wafis-add-component -> create a tsx conponent for the assemble project');
-    console.log('    -n/--name -> name of the component');
-    console.log('');
-    console.log('wafis-build -> build the assemble project');
-    console.log('    -d/--debug -> build project in debug mode');
-    console.log('    -r/--release -> build project in release mode');
-}
-
+/**
+ * the wafis cli command to install pre-reqs for C++ and rust wasm module compiling
+ * @param {Boolean} rust 
+ * @param {Boolean} cpp 
+ */
 function install(rust, cpp) {
     function installEMCC() {
         var osValue = process.platform;
@@ -770,6 +764,10 @@ function install(rust, cpp) {
         }
     }
 
+    /**
+     * Installs rust on your computer to compile rust into a wasm module
+     * @returns null
+     */
     function installRust() {
         //https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
         var osValue = process.platform;
@@ -779,13 +777,13 @@ function install(rust, cpp) {
             console.log('web-pack: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.3/wasm-pack-init.exe')
             return;
 
-            let url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe";
+            /*let url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe";
             //shell.exec('Invoke-WebRequest -URI "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile ".\\rust-install.exe" ')
             exec('Start-BitsTransfer -Source "' + url + '" -Destination rust-install.exe', {
                 'shell': 'powershell.exe'
             }, (error, stdout, stderr) => {
                 console.log(stdout);
-            })
+            })*/
         }
 
         if (osValue == "linux") {
@@ -808,7 +806,7 @@ function install(rust, cpp) {
 
 }
 
-function createProject(name, dirarg) {
+function createProject(name, dirarg, verbose) {
 
     if (!shell.which('tsc')) {
         shell.exec('npm i -g typescript');
@@ -829,12 +827,21 @@ function createProject(name, dirarg) {
     shell.exec('npx asinit . -y');
     shell.exec('npm i --save-dev --silent @babel/core parcel napa typescript babel-plugin-closure-elimination');
     shell.exec('npm i --silent @babel/plugin-transform-react-jsx');
-    shell.exec('tsc --init');
+    shell.exec('tsc --init --experimentalDecorators');
     setTimeout(() => {
         fs.unlinkSync('index.html');
         fs.writeFileSync("index.html", indexHTML);
         fs.writeFileSync('.babelrc', JSON.stringify(babelTemplate));
-
+        fs.writeFileSync('.parcelrc', JSON.stringify(
+            {
+                "extends": "@parcel/config-default",
+                "reporters": ["@parcel/reporter-cli"],
+                "resolvers": ["@parcel/resolver-glob", "..."],
+                "optimizers": {
+                    "*.js": ["@parcel/optimizer-esbuild"]
+                }                                      
+            }
+        ))
         fs.mkdirSync('src');
         fs.mkdirSync('./src/components');
         fs.mkdirSync('./assets');
@@ -845,13 +852,15 @@ function createProject(name, dirarg) {
         fs.writeFileSync('./src/components/index.json', JSON.stringify({
             component: []
         }));
-        fs.writeFileSync('./assembly/index.js', 'import { add } from "./debug.js";');
+        fs.writeFileSync('./assembly/assemblyScript.js', 'import { add } from "../build/debug.js";');
         fs.mkdirSync('./assembly/cpp');
         fs.mkdirSync('./assembly/rust');
         fs.mkdirSync('./assembly/cpp/src');
         fs.mkdirSync('./assembly/cpp/dist');
         fs.mkdirSync('./assembly/rust/src');
         fs.mkdirSync('./assembly/rust/dist');
+        
+        
 
         //import { add } from "./build/debug.js";
         //document.body.innerText = add(1, 2);
@@ -863,15 +872,22 @@ function createProject(name, dirarg) {
         initHtml.split(/\r?\n/).forEach((line, ind) => {
 
             if (!line.includes('import { add } from "./build/debug.js";') && !line.includes('document.body.innerText = add(1, 2);') && !line.includes('import { add } from "./build/release.js";')) {
-                if (line != null) {
+                if (line != null && line != undefined && line != 'null') {
                     newerHtml = newerHtml + line + '\n';
                 }
             } else {
-                if (line != null) {
-                    newerHtml = newerHtml + line;
+                if (line != null && line != undefined && line != 'null') {
+                    newerHtml = newerHtml + line + ' \n';
                 }
             }
         });
+
+        if(verbose == true) {
+            //console.log('------------ new html for index.html ----------');
+            newHtml.split(/\r?\n/).forEach((line, ind) => {
+                console.log('newLine:', line);
+           });
+        }
 
         if (newerHtml != null) {
             fs.unlinkSync('./index.html');
@@ -892,8 +908,24 @@ function createProject(name, dirarg) {
             });
         });
 
+
     }, 2000);
 
+}
+
+function buildNode() {
+    fs.mkdirSync('./backend');
+    shell.cd('./backend')
+    shell.exec('npm init --y');
+    shell.exec('npm i express');
+    shell.exec('npm i --save-dev eslint');
+
+    let basicServer = `
+        const express = require('express');
+        
+    `
+
+    fs.writeFileSync()
 }
 
 function buildProject(debug, verbose) {
@@ -921,13 +953,13 @@ function buildProject(debug, verbose) {
                 if (!html.includes('<script src="./src/components/' + ele.name + '/' + ele.name + '.component.tsx"></script>')) {
                     newHtml = newHtml + '<script src="./src/components/' + ele.name + '/' + ele.name + '.component.tsx"></script>' + '\n' + line;
                 } else {
-                    if (line != null) {
+                    if (line != null && line != undefined && line != 'null') {
                         newHtml = newHtml + line + '\n';
                     }
                 }
             } else {
 
-                if (line != null) {
+                if (line != null && line != undefined && line != 'null') {
                     newHtml = newHtml + line + '\n';
                 }
 
@@ -952,62 +984,77 @@ function buildProject(debug, verbose) {
     } catch (e) {
 
     }
-    //shell.exec('npx parcel build index.html');
-    shell.cp('./assembly/index.js', './dist/assemblyScript.js');
+    
+    //shell.cp('./assembly/index.js', './dist/assemblyScript.js');
     if (debug) {
-        shell.cp('./build/debug.js', './dist/debug.js');
+        //shell.cp('./build/debug.js', './dist/debug.js');
         shell.cp('./build/debug.wasm', './dist/debug.wasm');
     } else {
-        shell.cp('./build/release.js', './dist/release.js');
+        //shell.cp('./build/release.js', './dist/release.js');
         shell.cp('./build/release.wasm', './dist/release.wasm');
     }
 
     try {
-        html = fs.readFileSync('./dist/index.html', {
+        html = fs.readFileSync('./index.html', {
             encoding: 'utf-8',
             flag: 'r'
         });
 
+        
+        let newLines = [];
         html.split(/\r?\n/).forEach((line, ind) => {
+
             if (line.includes('</head>')) {
                 if (debug) {
-                    if (!html.includes('<script src="./debug.js"></script>')) {
-                        newHtml = newHtml + '<script src="./debug.js"></script>' + '\n' + line;
+                    if (!html.includes('<script type="module" src="./build/debug.js"></script>')) {
+                        newHtml = newHtml + '<script type="module" src="./build/debug.js"></script> ' + '\n' + line;
                     } else {
-                        if (line != null) {
+                        if (line != null && line != undefined && line != 'null') {
                             newHtml = newHtml + line + '\n';
                         }
                     }
                 } else {
-                    if (!html.includes('<script src="./release.js"></script>')) {
-                        newHtml = newHtml + '<script src="./release.js"></script>' + '\n' + line;
+                    if (!html.includes('<script type="module" src="./build/release.js"></script>')) {
+                        newHtml = newHtml + '<script type="module" src="./build/release.js"></script> ' + '\n' + line;
                     } else {
-                        if (line != null) {
+                        if (line != null && line != undefined && line != 'null') {
                             newHtml = newHtml + line + '\n';
                         }
                     }
                 }
             } else {
                 if (line.includes('</body>')) {
-                    if (!line.includes('<script src="./assemblyScript.js"></script>')) {
-                        if (line != null) {
-                            newHtml = newHtml + '<script src="./assemblyScript.js"></script>' + '\n' + line;
+                    if (!line.includes('<script type="module" src="./assembly/assemblyScript.js"></script>')) {
+                        if (line != null && line != undefined && line != 'null') {
+                            newHtml = newHtml + '<script type="module" src="./assembly/assemblyScript.js"></script> ' + '\n ' + line;
                         }
+                    }
+                }
+                else{
+                    if (line != null && line != undefined && line != 'null') {
+                        newHtml = newHtml + line + ' \n';
                     }
                 }
             }
         });
+
+        if(verbose == true) {
+            newHtml.split(/\r?\n/).forEach((line, ind) => {
+                console.log('newLine:', line);
+           });
+        }
 
         if (newHtml != null && newHtml != undefined) {
             fs.unlinkSync('./index.html');
             fs.writeFileSync('./index.html', newHtml);
         }
     } catch (e) {
-
+        console.log(e)
     }
 
-    //shell.exec('npx parcel serve ./dist/index.html');
-    shell.exec('npx parcel ./index.html');
+    shell.exec('parcel build index.html --dist-dir "./dist"');
+    shell.exec('npx parcel serve ./dist/index.html');
+    //shell.exec('npx parcel ./index.html');
 }
 
 function createComponent(name) {
