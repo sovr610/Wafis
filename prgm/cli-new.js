@@ -20,6 +20,13 @@ const babelTemplate = {
     ]
 }
 
+
+const wafisConfig = {
+    name: "name",
+    cpp: false,
+    rust: false
+}
+
 const cppSrc = `
 #include "vpxenc.h"
 #include <emscripten/bind.h>
@@ -39,7 +46,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
 
 const cppWebassemblyHtml = `
 <script type="module">
-import wasmModule from "./my-module.js";
+import wasmModule from "./assembly/cpp/dist/cpp.js";
 
 const instance = wasmModule({
   onRuntimeInitialized() {
@@ -49,7 +56,54 @@ const instance = wasmModule({
 </script>
 `
 
-const buildScript = `
+const buildScriptBat = `
+@echo off
+setlocal
+
+set OPTIMIZE=-Os
+set LDFLAGS=%OPTIMIZE%
+set CFLAGS=%OPTIMIZE%
+set CPPFLAGS=%OPTIMIZE%
+
+call %*
+
+echo =============================================
+echo Compiling libvpx
+echo =============================================
+if not defined SKIP_LIBVPX (
+    if exist lib rmdir /s /q lib
+    mkdir lib
+    cd lib
+    call emconfigure ../../../node_modules/libvpx/configure --target=generic-gnu
+    call emmake make
+    cd ..
+)
+echo =============================================
+echo Compiling libvpx done
+echo =============================================
+
+echo =============================================
+echo Compiling wasm bindings
+echo =============================================
+rem Compile C/C++ code
+call emcc %OPTIMIZE% --bind -s STRICT=1 -s ALLOW_MEMORY_GROWTH=1 -s ASSERTIONS=0 -s MALLOC=emmalloc -s MODULARIZE=1 -s EXPORT_ES6=1 -o ./main.js -I ./node_modules/libvpx src/main.cpp lib/libvpx.a
+
+rem Create output folder
+if not exist dist mkdir dist
+rem Move artifacts
+move main.js dist
+move main.wasm dist
+
+echo =============================================
+echo Compiling wasm bindings done
+echo =============================================
+
+:end
+endlocal
+
+`
+
+const buildScriptSh = `
 #!/bin/bash
 
 set -e
@@ -65,10 +119,10 @@ echo "============================================="
 echo "Compiling libvpx"
 echo "============================================="
 test -n "$SKIP_LIBVPX" || (
-  rm -rf build-vpx || true
-  mkdir build-vpx
-  cd build-vpx
-  emconfigure ../node_modules/libvpx/configure \
+  rm -rf lib || true
+  mkdir lib
+  cd lib
+  emconfigure ../../node_modules/libvpx/configure \
     --target=generic-gnu
   emmake make
 )
@@ -90,15 +144,15 @@ echo "============================================="
     -s MALLOC=emmalloc \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
-    -o ./my-module.js \
+    -o ./cpp.js \
     -I ./node_modules/libvpx \
-    my-module.cpp \
-    build-vpx/libvpx.a
+    src/main.cpp \
+    lib/libvpx.a
 
   # Create output folder
   mkdir -p dist 
   # Move artifacts
-  mv my-module.{js,wasm} dist
+  mv main.{js,wasm} dist
 )
 echo "============================================="
 echo "Compiling wasm bindings done"
@@ -107,71 +161,82 @@ echo "============================================="
 
 const cssStyle = cssFunc.getCssTemp();
 //const cssStyle = ' ';
+
+const indexComponent = `
+import WafisFramework from "./WafisFramework";
+import { render, FrameworkEl } from "./WafisFramework";
+
+// Use the component in your markup
+const myMarkup = () => {
+  return (
+    <div data-x="data attribute test">
+      <div id="id-test">
+        <h1>Wafis</h1>
+        <p>Welcome to the wafis framework</p>
+      </div>
+    </div>
+  );
+};
+
+render(myMarkup() as FrameworkEl, document.querySelector("#app"));
+`
+
 const frameworkTemplate = `
-interface FrameworkEl extends JSX.Element {
+export interface FrameworkEl {
     tag: any;
+    type: any;
+    key: any;
+    props: any;
   }
   
-  const MiniFramework = {
+  const WafisFramework = {
     createElement: (
-      tag: JSX.Element,
+      tag: any,
       props: any,
       ...children: any[]
     ): FrameworkEl => {
-      const element = {
+      if (typeof tag === 'function') {
+        // Handle functional components
+        return tag(props, ...children);
+      }
+  
+      const element: FrameworkEl = {
         tag,
-        type: tag.type,
-        key: tag.key,
+        type: tag,
+        key: props?.key || null,
         props: { ...props, children },
       };
-
-      console.log('element: ', element);
-
+  
       return element;
     },
   };
   
-  const render = (frameworkEl: FrameworkEl, container: Element | null) => {
-    if (["string", "number"].includes(typeof frameworkEl)) {
-      container?.appendChild(document.createTextNode(frameworkEl?.toString()));
+  export function render(frameworkEl: FrameworkEl, container: Element | null) {
+    if (typeof frameworkEl === 'string' || typeof frameworkEl === 'number') {
+      container?.appendChild(document.createTextNode(frameworkEl.toString()));
       return;
     }
   
     const actualDOMElement = document.createElement(frameworkEl.tag);
   
     // Apply Props to actual DOM Element
-    Object.keys(frameworkEl?.props)
-      .filter((key) => key !== "children")
-      .forEach((property) => {
-        if(frameworkEl.tag == 'div') {
-            console.log('div: ', frameworkEl.prop);
-        }
+    Object.keys(frameworkEl.props)
+      .filter(key => key !== 'children')
+      .forEach(property => {
         actualDOMElement[property] = frameworkEl.props[property];
       });
   
     // Render children inside this element
-    frameworkEl?.props?.children.forEach((child: FrameworkEl) => {
+    frameworkEl.props.children.forEach((child: any) => {
       render(child, actualDOMElement);
     });
-    
-    container?.appendChild(actualDOMElement); // Happens once, unless the DOM already exists and we just need to replace something on the child element.
-  };
   
-  const myMarkup = () => {
-    return (
-        <div data-x="data attribute test">
-
-        </div>
-    
-    );
+    container?.appendChild(actualDOMElement);
   };
-  
-  render(myMarkup() as FrameworkEl, document.querySelector("#app"));
+  export default WafisFramework;
 `
 
 const preApp = `
-const myMarkup = () => {
-    return (
         <meta name="description" content="">
         <meta name="og:locale" content="">
         <meta name="og:type" content="website">
@@ -189,9 +254,6 @@ const myMarkup = () => {
         <link rel="canonical" href="">
 
         <link rel="icon" type="image/x-icon" href="favicon.ico">
-    )};
-
-
 `
 
 const indexHTML = `
@@ -237,6 +299,11 @@ const indexHTML = `
                     <div class="divider-custom-line"></div>
                 </div>
                 <!-- Portfolio Grid Items-->
+                <br/>
+                <hr/>
+                <div id="app"></div>
+                <br/>
+                <hr/>
                 <div class="row justify-content-center">
                     <!-- Portfolio Item 1-->
                     <div class="col-md-6 col-lg-4 mb-5">
@@ -314,15 +381,16 @@ const indexHTML = `
                 </div>
             </div>
         </section>
-        <div id="app"></div>
+        
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.min.js" integrity="sha384-ODmDIVzN+pFdexxHEHFBQH3/9/vQ9uori45z4JjnFsRydbmQbmL5t1tQ0culUzyK" crossorigin="anonymous"></script>
-        <script src="./src/index.tsx"></script>
+        
+        <script type="module" src="./src/index.tsx"></script>
     </body>
 </html>
 `
 
 const packageJsonTemplate = {
-    "name": null,
+    "name": "project",
     "version": "1.0.0",
     "description": "assemble project template",
     "scripts": {
@@ -341,7 +409,7 @@ const packageJsonTemplate = {
         "libvpx": "git+https://github.com/webmproject/libvpx"
     },
     "keywords": [
-        "assemble",
+        "wafis",
         "webassembly"
     ],
     "author": "",
@@ -382,6 +450,48 @@ function parseHtmlIndexAddAbove(key, addon) {
     });
 }
 
+function getOs() {
+    var osValue = process.platform;
+    var osName = null;
+    if (osValue == 'darwin') {
+        osName = "Mac OS";
+    } else if (osValue == 'win32') {
+        osName = "Window OS";
+    } else if (osValue == 'android') {
+        osName = "Android OS";
+    } else if (osValue == 'linux') {
+        osName = "Linux OS";
+    } else {
+        osName = "Unknown OS";
+    }
+
+    return osName;
+}
+
+function insertData(lines, index, text) {
+    // Check if the index is within the bounds of the lines array
+    if (index < 0 || index > lines.length) {
+        throw new Error("Index out of bounds");
+    }
+
+    // Insert the text at the specified index
+    lines.splice(index, 0, text);
+    return lines;
+}
+
+
+
+function findLineContainingString(lines, searchString) {
+    // Loop through each line in the array
+    for (let i = 0; i < lines.length; i++) {
+        // Check if the current line contains the search string
+        if (lines[i].includes(searchString)) {
+            return i; // Return the line number (0-based index)
+        }
+    }
+    return -1; // Return -1 if the search string is not found
+}
+
 export function wafis(args) {
 
     var argcc = args.slice(2);
@@ -392,6 +502,7 @@ export function wafis(args) {
     var hasWasm = false;
     var hasBuild = false;
     var hasInstall = false;
+    var hasAddCpp = false;
 
 
     for (let i = 0; i <= argcc.length; i++) {
@@ -422,6 +533,10 @@ export function wafis(args) {
                 hasBuild = true;
             }
 
+            if (itm == 'add-cpp') {
+                hasAddCpp = true;
+            }
+
             if(itm == 'install') {
                 hasInstall = true;
             }
@@ -435,7 +550,8 @@ export function wafis(args) {
         service: hasService,
         wasm: hasWasm,
         build: hasBuild,
-        install: hasInstall
+        install: hasInstall,
+        addCpp: hasAddCpp
     }
 
     function parseArgs(rawArgs) {
@@ -448,6 +564,9 @@ export function wafis(args) {
             "--version": Boolean,
             "--verbose": Boolean,
             "--type": String,
+            "--module": String,
+            "--moduleUrl": String,
+            "--moduleArgs": String,
             "-t": "--type",
             "-h": "--help",
             "-db": "--debug",
@@ -455,7 +574,10 @@ export function wafis(args) {
             "-n": "--name",
             "-r": "--release",
             "-v": "--version",
-            "-vb": "--verbose"
+            "-vb": "--verbose",
+            "-m": "--module",
+            "-u": "--moduleUrl",
+            "-a": "--moduleArgs"
         }, {
             argv: rawArgs.slice(2)
         });
@@ -468,6 +590,9 @@ export function wafis(args) {
             version: args["--version"] || false,
             verbose: args["--verbose"] || false,
             type: args["--type"] || false,
+            module: args["--module"] || null,
+            moduleUrl: args["--moduleUrl"] || null,
+            moduleArgs: args["--moduleArgs"] || null
 
         }
     }
@@ -475,10 +600,68 @@ export function wafis(args) {
     const argc = parseArgs(args);
 
 
+    if(argObj.addCpp) {
+
+        let packageStr = fs.readFileSync('./package.json', 'utf8');
+        let packageJson = JSON.parse(packageStr);
+        if(packageJson != null) {
+            packageJson.napa[argc.module] = argc.moduleUrl
+        }
+        fs.unlinkSync('./package.json');
+        fs.writeFileSync('./package.json', JSON.stringify(packageJson));
+        shell.exec('napa');
+
+        let module;
+        
+        if(argc.moduleArgs != null){
+            module = `
+                emconfigure ../../node_modules/` + argc.module + `/configure ` + argc.moduleArgs + `
+            `
+        } else {
+            module = `
+            emconfigure ../../node_modules/` + argc.module + `/configure`;
+        }
+
+        const buildShFilename = './assembly/cpp/build.sh';
+
+        let make = fs.readFileSync(buildShFilename, 'utf8');
+        const lines = make.split(/\r?\n/);
+        let lineNum = findLineContainingString(lines, "emmake make");
+
+        let newLines = insertData(lines, lineNum - 1, module);
+
+        let lineNumTwo = findLineContainingString(newLines,"src/main.cpp");
+        newLines = insertData(newLines, lineNumTwo, 'lib/' + argc.module);
+
+        let lineNumThree = findLineContainingString(newLines,"src/main.cpp");
+        newLines = insertData(newLines, lineNumThree - 1, '-I ./node_modules/' + argc.module);
+
+        fs.unlinkSync(buildShFilename);
+        fs.writeFileSync(buildShFilename,newLines.join('\n'));
+
+
+        let makeBat = fs.readFileSync('./assembly/cpp/build.bat', 'utf8');
+        const linesBat = makeBat.split(/\r?\n/);
+        let lineNumBat = findLineContainingString(linesBat, "emmake make");
+
+        let newLinesBat = insertData(linesBat, lineNumBat - 1, module);
+
+        //-I ./node_modules/libvpx
+
+        let lineNumTwoBat = findLineContainingString(newLinesBat,"src/main.cpp");
+        newLines = insertData(newLinesBat, lineNumTwoBat, 'lib/' + argc.module);
+
+        let lineNumThreeBat = findLineContainingString(newLines,"src/main.cpp");
+        newLines = insertData(newLinesBat, lineNumThreeBat - 1, '-I ./node_modules/' + argc.module);
+
+        fs.unlinkSync('./assembly/cpp/build.bat');
+        fs.writeFileSync('./assembly/cpp/build.bat',newLinesBat.join('\n'));
+
+    }
 
     if (argObj.new == true) {
         if (argObj.project && (!argc.help)) {
-            createProject(argc.name, argc.dir);
+            createProject(argc.name, argc.dir, argc);
 
         }
 
@@ -517,6 +700,19 @@ export function wafis(args) {
             console.log('  OPTIONS: ');
             console.log('    -n/--name: name of the project');
             console.log('    -d/--dir: directory location for project folder, default \'./\'');
+            console.log('');
+            console.log('----------------------------------------------------------------')
+        }
+
+        if((argObj.addCpp && argc.help)) {
+            console.log('----------------------------------------------------------------')
+            console.log('\x1b[31m', 'wafis add-cpp [options...]', '\x1b[37m');
+            console.log('');
+            console.log('');
+            console.log('  OPTIONS: ');
+            console.log('    -m/--module: name of the C++ library');
+            console.log('    -u/--moduleUrl: github repo url of the C++ library');
+            console.log('    -a/--moduleArgs: Add additional build args associated to emscripten configure');
             console.log('');
             console.log('----------------------------------------------------------------')
         }
@@ -577,17 +773,19 @@ export function wafis(args) {
         }
     } else {
         if (argObj.install) {
-            if(argc.type == 'cpp'){
+            if(argc.type != null) {
+            if(argc.type.toLowerCase() == 'cpp' || argc.type.toLowerCase() == 'c++'){
                 install(false, true);
             }
 
-            if(argc.type == 'rust'){
+            if(argc.type.toLowerCase() == 'rust'){
                 install(true, false);
             }
 
-            if(argc.type == 'both'){
+            if(argc.type.toLowerCase() == 'both'){
                 install(true, true);
             }
+        }
         } else {
             if (argc.version) {
 
@@ -808,7 +1006,7 @@ function install(rust, cpp) {
 
 }
 
-function createProject(name, dirarg) {
+function createProject(name, dirarg, argc) {
 
     if (!shell.which('tsc')) {
         shell.exec('npm i -g typescript');
@@ -820,6 +1018,8 @@ function createProject(name, dirarg) {
     } else {
         dir = dirarg;
     }
+    console.log('Creating project with name ' + name);
+    packageJsonTemplate.name = name;
     fs.mkdirSync(dir + name);
     fs.writeFileSync(dir + name + '/package.json', JSON.stringify(packageJsonTemplate));
     shell.cd(dir);
@@ -839,9 +1039,27 @@ function createProject(name, dirarg) {
         fs.mkdirSync('./src/components');
         fs.mkdirSync('./assets');
 
+        if(argc.type != null) {
+            if(argc.type.toLowerCase() == 'c++' || argc.type.toLowerCase() == 'cpp'){
+                wafisConfig.cpp = true;
+            }
 
+            if(argc.type.toLowerCase() == 'rust'){
+                wafisConfig.rust = true;
+            }
 
-        fs.writeFileSync('./src/index.tsx', frameworkTemplate);
+            if(argc.type.toLowerCase() == 'both'){
+                wafisConfig.cpp = true;
+                wafisConfig.rust = true;
+            }
+        }
+
+        wafisConfig.name = argc.name;
+
+        fs.writeFileSync('wafis.config.json', JSON.stringify(wafisConfig));
+
+        fs.writeFileSync('./src/WafisFramework.ts', frameworkTemplate);
+        fs.writeFileSync('./src/index.tsx', indexComponent);
         fs.writeFileSync('./src/components/index.json', JSON.stringify({
             component: []
         }));
@@ -850,11 +1068,33 @@ function createProject(name, dirarg) {
         fs.mkdirSync('./assembly/rust');
         fs.mkdirSync('./assembly/cpp/src');
         fs.mkdirSync('./assembly/cpp/dist');
-        fs.mkdirSync('./assembly/rust/src');
-        fs.mkdirSync('./assembly/rust/dist');
 
         //import { add } from "./build/debug.js";
         //document.body.innerText = add(1, 2);
+
+        if (argc.type != null) {
+            if (argc.type.toLowerCase() == 'cpp' || argc.type.toLowerCase() == 'c++') {
+                fs.writeFileSync('./assembly/cpp/build.sh', buildScriptSh);
+                fs.writeFileSync('./assembly/cpp/build.bat', buildScriptBat);
+                fs.writeFileSync('./assembly/cpp/src/main.cpp', cppSrc);
+            }
+
+            if (argc.type.toLowerCase() == 'rust') {
+                shell.exec('cd assembly');
+                shell.exec('cd rust');
+                shell.exec('npm init -y rust-webpack rustProject');
+            }
+
+            if(argc.type.toLowerCase() == 'both'){
+                fs.writeFileSync('./assembly/cpp/build.sh', buildScriptSh);
+                fs.writeFileSync('./assembly/cpp/build.bat', buildScriptBat);
+                fs.writeFileSync('./assembly/cpp/src/main.cpp', cppSrc);
+
+                shell.exec('cd assembly');
+                shell.exec('cd rust');
+                shell.exec('npm init -y rust-webpack rustProject');
+            }
+        }
 
         var initHtml = fs.readFileSync('./index.html', {
             encoding: 'utf-8'
@@ -896,62 +1136,50 @@ function createProject(name, dirarg) {
 
 }
 
+function getWafisConfig() {
+    let configStr = fs.readFileSync('wafis.config.json', 'utf8');
+    if(configStr != null) {
+        return JSON.parse(configStr);
+    } else {
+        console.error('Could not find wafis config file in current diectory');
+        return null;
+    }
+}
+
 function buildProject(debug, verbose) {
+
+    const config = getWafisConfig();
+    console.log('config: ', config)
     if (debug) {
-
         shell.exec('npm run asbuild:debug');
-
     } else {
         shell.exec('npm run asbuild:release');
     }
-    let index = fs.readFileSync('./src/components/index.json', {
-        encoding: 'utf-8',
-        flag: 'r'
-    });
-    let json = JSON.parse(index);
-    let html = fs.readFileSync('./index.html', {
-        encoding: 'utf-8',
-        flag: 'r'
-    });
-    var newHtml = null;
 
-    json.component.forEach((ele) => {
-        html.split(/\r?\n/).forEach((line, ind) => {
-            if (line.includes('</body>')) {
-                if (!html.includes('<script src="./src/components/' + ele.name + '/' + ele.name + '.component.tsx"></script>')) {
-                    newHtml = newHtml + '<script src="./src/components/' + ele.name + '/' + ele.name + '.component.tsx"></script>' + '\n' + line;
-                } else {
-                    if (line != null) {
-                        newHtml = newHtml + line + '\n';
-                    }
-                }
-            } else {
-
-                if (line != null) {
-                    newHtml = newHtml + line + '\n';
-                }
-
+    let osType = getOs();
+    if(config.cpp) {
+        if(osType === "Window OS"){
+            if(fs.existsSync("./assembly/cpp/build.bat")) {
+                shell.exec('start "assembly/cpp/build.bat"');
             }
-        });
-    })
-
-    if (verbose) {
-        newHtml.split(/\r?\n/).forEach((line, ind) => {
-            console.log('newLine:', line);
-        });
+        } else {
+            if (osType === "Linux OS") {
+                if(fs.existsSync("./assembly/cpp/build.sh")) {
+                    shell.exec('bash assembly/cpp/build.sh');
+                }
+            }
+        }
     }
 
-    if (newHtml != null && newHtml != undefined) {
-        fs.unlinkSync('./index.html');
-        fs.writeFileSync('./index.html', newHtml);
-    }
-    newHtml = null;
+    let newHtml = null;
 
     try {
         shell.mkdir('./dist');
     } catch (e) {
 
     }
+
+    var html;
     //shell.exec('npx parcel build index.html');
     shell.cp('./assembly/index.js', './dist/assemblyScript.js');
     if (debug) {
@@ -967,8 +1195,15 @@ function buildProject(debug, verbose) {
             encoding: 'utf-8',
             flag: 'r'
         });
-
+        21.94
         html.split(/\r?\n/).forEach((line, ind) => {
+            if(line.includes('<script type="module" src="./src/index.tsx"></script>')){
+                if(config.cpp == true){
+                    if(!html.incudes(cppWebassemblyHtml)){
+                        newHtml = newHtml + cppWebassemblyHtml + '\n' + line;
+                    }
+                }
+            }
             if (line.includes('</head>')) {
                 if (debug) {
                     if (!html.includes('<script src="./debug.js"></script>')) {
@@ -1015,11 +1250,12 @@ function createComponent(name) {
     shell.cd('./src/components');
     shell.mkdir(name);
     fs.writeFileSync('./' + name + '/' + name + '.component.tsx', `
-    const ` + name + `Component = () =>{
+    import MiniFramework from "./MiniFramework";
+    import { FrameworkEl } from "./MiniFramework";
+
+    export default function ` + name + `Component(props: any) {
         return(<div>component</div>)
     }
-
-    render(` + name + `Component() as FrameworkEl, document.querySelector("` + name + `"))
 
     `);
     var comIndexData = fs.readFileSync('index.json', {
