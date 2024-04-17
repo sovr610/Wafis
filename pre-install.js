@@ -1,6 +1,76 @@
 //const inquirer = require('inquirer');
+const fs = require('fs');
+const shell = require('shelljs');
+const appData = require('appdata-path');
 
+function installEMCC() {
+    var osValue = process.platform;
+    shell.exec('npm install -g napa');
+    if (osValue == 'win32') {
+        console.log('WARNING: this is not as stable, but should still work.');
+        let tmp = appData();
+        let currentDir = process.cwd();
 
+        shell.cd(tmp);
+        shell.exec('git clone https://github.com/emscripten-core/emsdk.git');
+        shell.cd('emsdk');
+        shell.exec('start emsdk install latest');
+        shell.exec('start emsdk activate latest');
+        shell.exec('emsdk_env.bat');
+        shell.cd(currentDir);
+
+    }
+
+    if (osValue == 'linux') {
+        let tmp = shell.tempdir();
+        let currentDir = process.cwd();
+
+        if (!shell.which('python3')) {
+            shell.exec('sudo apt-get install python3');
+        }
+
+        if (!shell.which('git')) {
+            shell.exec('sudo apt-get install git');
+        }
+
+        if (!shell.which('cmake')) {
+            shell.exec('sudo apt-get install cmake');
+        }
+
+        shell.cd(tmp);
+        shell.exec('git clone https://github.com/emscripten-core/emsdk.git');
+        shell.cd('emsdk');
+        shell.exec('./emsdk install latest');
+        shell.exec('./emsdk activate latest');
+        shell.exec('source ./emsdk_env.sh');
+
+        shell.cd(currentDir)
+    }
+}
+
+function installRust() {
+    //https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+    var osValue = process.platform;
+    if (osValue == 'win32') {
+        //console.log('Right now you will need to install rust and web-pack manually for windows, we are working on this!');
+        //console.log('rust: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe');
+        //console.log('web-pack: https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-init.exe')
+        shell.exec('curl https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe --output rustup-init.exe');
+        shell.exec('start rustup-init.exe');
+        shell.exec('curl https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-init.exe --output wasm-pack-init.exe');
+        shell.exec('start wasm-pack-init.exe');
+        return;
+    }
+
+    if (osValue == "linux") {
+        if (!shell.which('curl')) {
+            shell.exec('sudo apt-get curl');
+        }
+
+        shell.exec('curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh');
+        shell.exec('curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh');
+    }
+}
 
 console.log('with installing wafis, webassembly is a big component!');
 console.log('');
