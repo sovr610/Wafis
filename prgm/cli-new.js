@@ -394,7 +394,7 @@ const packageJsonTemplate = {
     "version": "1.0.0",
     "description": "assemble project template",
     "scripts": {
-        "install": "napa",
+        "install:cpp": "napa",
         "test": "node tests",
         "pack": "npx parcel ./index.html",
         "start": "npx serve .",
@@ -976,14 +976,6 @@ function install(rust, cpp) {
             console.log('rust: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe');
             console.log('web-pack: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.3/wasm-pack-init.exe')
             return;
-
-            let url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe";
-            //shell.exec('Invoke-WebRequest -URI "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile ".\\rust-install.exe" ')
-            exec('Start-BitsTransfer -Source "' + url + '" -Destination rust-install.exe', {
-                'shell': 'powershell.exe'
-            }, (error, stdout, stderr) => {
-                console.log(stdout);
-            })
         }
 
         if (osValue == "linux") {
@@ -1063,7 +1055,7 @@ function createProject(name, dirarg, argc) {
         fs.writeFileSync('./src/components/index.json', JSON.stringify({
             component: []
         }));
-        fs.writeFileSync('./assembly/index.js', 'import { add } from "./debug.js";');
+        fs.writeFileSync('./assembly/index.js', 'import { add } from "./debug.js"; \n alert("Assembly script says: " + add(1,2)); \n');
         fs.mkdirSync('./assembly/cpp');
         fs.mkdirSync('./assembly/rust');
         fs.mkdirSync('./assembly/cpp/src');
@@ -1134,6 +1126,7 @@ function createProject(name, dirarg, argc) {
 
     }, 2000);
 
+
 }
 
 function getWafisConfig() {
@@ -1149,6 +1142,12 @@ function getWafisConfig() {
 function buildProject(debug, verbose) {
 
     const config = getWafisConfig();
+
+    let tmp = appData();
+    let currentDir = process.cwd();
+    
+
+
     console.log('config: ', config)
     if (debug) {
         shell.exec('npm run asbuild:debug');
@@ -1158,9 +1157,15 @@ function buildProject(debug, verbose) {
 
     let osType = getOs();
     if(config.cpp) {
+        shell.cd(tmp);
+        shell.cd('emsdk');
+        shell.exec('emsdk_env.bat');
+        shell.cd(currentDir);
+        shell.exec('npm run install:cpp');
         if(osType === "Window OS"){
             if(fs.existsSync("./assembly/cpp/build.bat")) {
-                shell.exec('start "assembly/cpp/build.bat"');
+
+                shell.exec('start "assembly\\cpp\\build.bat"');
             }
         } else {
             if (osType === "Linux OS") {
@@ -1191,16 +1196,20 @@ function buildProject(debug, verbose) {
     }
 
     try {
-        html = fs.readFileSync('./dist/index.html', {
+        html = fs.readFileSync('./index.html', {
             encoding: 'utf-8',
             flag: 'r'
         });
-        21.94
+        
         html.split(/\r?\n/).forEach((line, ind) => {
             if(line.includes('<script type="module" src="./src/index.tsx"></script>')){
                 if(config.cpp == true){
                     if(!html.incudes(cppWebassemblyHtml)){
                         newHtml = newHtml + cppWebassemblyHtml + '\n' + line;
+                    } else {
+                        if (line != null) {
+                            newHtml = newHtml + line + '\n';
+                        }
                     }
                 }
             }
@@ -1228,6 +1237,10 @@ function buildProject(debug, verbose) {
                         if (line != null) {
                             newHtml = newHtml + '<script src="./assemblyScript.js"></script>' + '\n' + line;
                         }
+                    } else {
+                        if (line != null) {
+                            newHtml = newHtml + line + '\n';
+                        }
                     }
                 }
             }
@@ -1238,7 +1251,7 @@ function buildProject(debug, verbose) {
             fs.writeFileSync('./index.html', newHtml);
         }
     } catch (e) {
-
+        console.error("error parsing index html file: " + e.message);
     }
 
     //shell.exec('npx parcel serve ./dist/index.html');
