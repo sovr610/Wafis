@@ -2,8 +2,33 @@
 const fs = require('fs');
 const shell = require('shelljs');
 const appData = require('appdata-path');
+const sudo = require('sudo-prompt');
 
-function installEMCC() {
+function execShellCommand(cmd) {
+    return new Promise((resolve, reject) => {
+        shell.exec(cmd, {silent: true}, (code, stdout, stderr) => {
+            if (code === 0) {
+                resolve(stdout);
+            } else {
+                reject(new Error(stderr));
+            }
+        });
+    });
+}
+
+function execAsAdmin(command) {
+    return new Promise((resolve, reject) => {
+        sudo.exec(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);  // This will reject the promise in case of an error
+            } else {
+                resolve({ stdout, stderr });  // Resolve with an object containing stdout and stderr
+            }
+        });
+    });
+}
+
+async function installEMCC() {
     var osValue = process.platform;
     shell.exec('npm install -g napa');
     if (osValue == 'win32') {
@@ -18,7 +43,18 @@ function installEMCC() {
         shell.exec('start emsdk activate latest');
         shell.exec('emsdk_env.bat');
         shell.cd(currentDir);
+        shell.exec('setx emccPath "' + tmp + '\\emsdk\\upstream\\emscripten"');
+        //shell.exec(`runas /user:administrator install-make.bat`);
 
+        shell.exec('curl https://github.com/msys2/msys2-installer/releases/download/2024-01-13/msys2-x86_64-20240113.exe --output MSYS2.exe')
+        
+        let result = await execAsAdmin('start MSYS2.exe');
+        console.log('STDOUT:', result.stdout);
+        console.log('STDERR:', result.stderr);
+
+        result = await execAsAdmin('install-make.bat');
+        console.log('STDOUT:', result.stdout);
+        console.log('STDERR:', result.stderr);
     }
 
     if (osValue == 'linux') {
@@ -48,27 +84,45 @@ function installEMCC() {
     }
 }
 
-function installRust() {
-    //https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+async function installRust() {
     var osValue = process.platform;
     if (osValue == 'win32') {
-        //console.log('Right now you will need to install rust and web-pack manually for windows, we are working on this!');
-        //console.log('rust: https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe');
-        //console.log('web-pack: https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-init.exe')
-        shell.exec('curl https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe --output rustup-init.exe');
-        shell.exec('start rustup-init.exe');
-        shell.exec('curl https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-init.exe --output wasm-pack-init.exe');
-        shell.exec('start wasm-pack-init.exe');
+        try {
+            // Download and install Rust
+            console.log('Downloading Rust installer...');
+            await execShellCommand('curl https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe --output rustup-init.exe');
+            console.log('Running Rust installer...');
+            await execShellCommand('start rustup-init.exe');
+
+            // Download and install wasm-pack
+            console.log('Downloading wasm-pack installer...');
+            await execShellCommand('curl https://github.com/rustwasm/wasm-pack/releases/download/v0.12.1/wasm-pack-init.exe --output wasm-pack-init.exe');
+            console.log('Running wasm-pack installer...');
+            await execShellCommand('start wasm-pack-init.exe');
+        } catch (error) {
+            console.error('Error during installation:', error);
+        }
+
+        console.log('Installation process on Windows complete.');
         return;
     }
 
     if (osValue == "linux") {
-        if (!shell.which('curl')) {
-            shell.exec('sudo apt-get curl');
+        try {
+            if (!shell.which('curl')) {
+                console.log('Curl is not installed. Installing now...');
+                await execShellCommand('sudo apt-get install -y curl');
+            }
+
+            console.log('Installing Rust...');
+            await execShellCommand('curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh');
+            console.log('Installing wasm-pack...');
+            await execShellCommand('curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh');
+        } catch (error) {
+            console.error('Error during installation:', error);
         }
 
-        shell.exec('curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh');
-        shell.exec('curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh');
+        console.log('Installation process on Linux complete.');
     }
 }
 
@@ -80,20 +134,27 @@ console.log('(2) -> rust & webpack');
 console.log('(3) -> both features');
 console.log('(4) -> nah I just want assembly script (neither)');
 process.stdin.setEncoding('utf8');
-process.stdin.once('data', function(val){
-    if(val.trim() == '1'){
-        installEMCC();
+process.stdin.once('data', async function(val){
+
+    try{
+        if(val.trim() == '1'){
+            await installEMCC();
+        }
+
+        if(val.trim() == '2'){
+            await installRust();
+        }
+
+        if(val.trim() == '3'){
+            await installEMCC();
+            await installRust();
+        }
+    } catch (error) {
+        console.error('Error during installation:', error);
+    } finally {
+        process.exit(); // This will exit the Node.js process
     }
 
-    if(val.trim() == '2'){
-        installRust();
-    }
-
-    if(val.trim() == '3'){
-        installEMCC();
-        installRust();
-    }
-
-    console.log('done with the pre-install!');
+    
 }).resume()
 

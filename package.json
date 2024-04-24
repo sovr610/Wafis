@@ -41,14 +41,14 @@
       "git add"
     ]
   },
-  "funding":[
+  "funding": [
     {
-      "type":"paypal",
-      "url":"https://paypal.me/padrobotics?country.x=US&locale.x=en_US"
+      "type": "paypal",
+      "url": "https://paypal.me/padrobotics?country.x=US&locale.x=en_US"
     },
     {
-      "type":"patreon",
-      "url":"https://www.patreon.com/MrSovr"
+      "type": "patreon",
+      "url": "https://www.patreon.com/MrSovr"
     }
   ],
   "bin": {
@@ -70,7 +70,8 @@
     "inquirer": "^9.1.0",
     "npm": "^8.18.0",
     "os": "^0.1.2",
-    "shelljs": "^0.8.5"
+    "shelljs": "^0.8.5",
+    "sudo-prompt": "^9.2.1"
   },
   "devDependencies": {
     "eslint": "^8.22.0",
